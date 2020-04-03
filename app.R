@@ -162,7 +162,7 @@ server <- function(input, output, session) {
 
     ggplot() +
        geom_rect(data = peaks_data() ,
-                aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=25, fill=peaks_data()$time),
+                aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=max(UMI_data()$avg_log2_UMI), fill=peaks_data()$time),
                 color = "transparent",
                 alpha = 0.8) +
                 xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
@@ -172,20 +172,20 @@ server <- function(input, output, session) {
 
   output$MARSATAC_plot <- renderPlot({
 
-    ggplot(data = UMI_data() , aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI)) +
-            geom_point(aes(color = UMI_data()$condition), shape = 1, size = 2) +
+        ggplot() +
+            geom_point(data = UMI_data(),
+              aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI,color = UMI_data()$condition), shape = 1, size = 2) +
+            geom_rect(data = peaks_data() ,
+              aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=max(UMI_data()$avg_log2_UMI), fill=peaks_data()$time),
+              color = "transparent",
+              alpha = 0.8) +
             xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
-       geom_rect(data = peaks_data() ,
-                inherit.aes=FALSE,
-                aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=max(UMI_data()$avg_log2_UMI), fill=peaks_data()$time),
-                color = "transparent",
-                alpha = 0.8) +
             labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points", fill = "ATAC-seq time points")+
             ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor))
 
 
     })
-
+    
 }
 
 # Run the application
