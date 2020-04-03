@@ -13,6 +13,7 @@
 
 library(shiny)
 library(ggplot2)
+library(plotly)
 library(dplyr)
 
 ##########################
@@ -137,7 +138,7 @@ ui <- fluidPage(
   
   mainPanel(
     h3("MARS-seq plot :"),
-    plotOutput(outputId = "MARS_plot"),
+    plotlyOutput(outputId = "MARS_plot"),
     h3("ATAC-seq plot :"),
     plotOutput(outputId = "ATAC_plot"),
     h3("MARSATAC plot :"),
@@ -162,14 +163,24 @@ server <- function(input, output, session) {
       filter(type %in% input$peaks_type) %>%
       filter(yes_no == TRUE)}
   )
-  output$MARS_plot <- renderPlot({
+  
+  output$MARS_plot <- renderPlotly({
     
-    ggplot(data = UMI_data() , aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI)) +
-      geom_point(aes(color = UMI_data()$condition), shape = 1, size =2) +
+    hover_text = paste0("Gene : ", UMI_data()$transcript_name_chr,
+                        "\nNb cell : ", UMI_data()$sum_cell,
+                        "\nVariance : ", round(UMI_data()$variance,1))
+    
+    plot <- ggplot() +
+      geom_point(aes(x = UMI_data()$start_position, y = UMI_data()$avg_log2_UMI, 
+                     color = UMI_data()$condition, text = hover_text),
+                 shape = 1, size = 2) +
       xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points")+
       ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor)) +
       theme(plot.title = element_text(size = 15, face = "bold"))
+    
+    ggplotly(plot, tooltip = "text")
+
   })
   
   output$ATAC_plot <- renderPlot({
