@@ -60,7 +60,7 @@ ui <- fluidPage(
   
   wellPanel(
     fluidRow(
-      column(3,
+      column(2,
         selectInput(
           inputId = "donor",
           label = "Donors",
@@ -99,9 +99,20 @@ ui <- fluidPage(
       ),
       
       column(2,
+        selectInput(inputId = "peaks_type",
+          label = "ATAC peaks type",
+          choices = list(TSS_1kb  = "TSS_1kb",
+                      Intergenic = "intergenic",
+                      CTCF = "CTCF",
+                      Intergenic_CTCF = "CTCF_intergenic"),
+        selected = "TSS_1kb" )
+        
+        ),
+      
+      column(2,
         actionButton(inputId = "update_button",
           label = "Click to update the plot",
-          style='padding:50px 250px; font-size:250%')
+          style='padding:50px 100px; font-size:200%')
       )
     )
   ),
@@ -147,7 +158,9 @@ server <- function(input, output, session) {
   
   peaks_data <- eventReactive(input$update_button,{accessibility_peaks_data %>%
       filter(time %in% input$ATAC_time) %>%
-      filter(chr == input$chr)}
+      filter(chr == input$chr)%>%
+      filter(type %in% input$peaks_type) %>%
+      filter(yes_no == TRUE)}
   )
   output$MARS_plot <- renderPlot({
     
@@ -155,7 +168,8 @@ server <- function(input, output, session) {
       geom_point(aes(color = UMI_data()$condition), shape = 1, size =2) +
       xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points")+
-      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor))
+      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor)) +
+      theme(plot.title = element_text(size = 15, face = "bold"))
   })
   
   output$ATAC_plot <- renderPlot({
@@ -166,8 +180,10 @@ server <- function(input, output, session) {
         color = "transparent",
         alpha = 0.8) +
       xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
-      labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq time points")+
-      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor))
+      labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq peak time :") +
+      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
+      theme(plot.title = element_text(size = 15, face = "bold"))
+
   })
   
   output$MARSATAC_plot <- renderPlot({
@@ -178,12 +194,12 @@ server <- function(input, output, session) {
         color = "transparent",
         alpha = 0.8) +
       xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
-      labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq time points")+
+      labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq peak time :")+
       # labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq time points", color = "MARS-seq time points")+
       geom_point(data = UMI_data(),
         aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI,color = UMI_data()$condition), shape = 1, size = 2) +  
-      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor))
-    
+      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
+      theme(plot.title = element_text(size = 15, face = "bold"))
     
   })
   
