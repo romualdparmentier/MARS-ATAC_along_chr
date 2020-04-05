@@ -118,25 +118,7 @@ ui <- fluidPage(
     )
   ),
   
-  h3("Window of interest"),
-  
-  wellPanel(
-    fluidRow(
-      
-      column(12,
-        sliderInput(inputId = "position",
-          label = "Position in chromosome in Mbp",
-          min = 0,
-          max = 250,
-          step = 1,
-          value = c(20,100),
-          sep = TRUE,
-          ticks = TRUE),
-      )
-    )
-  ),
-  
-  mainPanel(width = 12,
+  mainPanel(width = 10,
     h3("MARS-seq plot :"),
     plotlyOutput(outputId = "MARS_plot"),
     h3("ATAC-seq plot :"),
@@ -174,7 +156,7 @@ server <- function(input, output, session) {
       geom_point(aes(x = UMI_data()$start_position, y = UMI_data()$avg_log2_UMI, 
                      color = UMI_data()$condition, text = hover_text),
                  shape = 1, size = 2) +
-      xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
+      xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points")+
       ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor)) +
       theme(plot.title = element_text(size = 15, face = "bold"))
@@ -193,18 +175,20 @@ server <- function(input, output, session) {
       geom_rect(data = peaks_data() ,
         aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=max(UMI_data()$avg_log2_UMI), fill=peaks_data()$time),
         color = "grey",
-        alpha = 0.8) +
-      xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
+        alpha = 0.5) +
+      xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq peak time :") +
       ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
-      theme(plot.title = element_text(size = 15, face = "bold"))
+      theme(legend.position = "bottom",
+            plot.title = element_text(size = 15, face = "bold"))
     
     ggplotly(plot) %>% 
       config(displaylogo = FALSE) %>%
-      layout(yaxis=list(fixedrange=TRUE)) %>%
+      layout(legend = list(orientation = "h", x = 0.5, y = -0.3),
+        yaxis=list(fixedrange=TRUE)) %>%
       config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
-  })
+  }) 
   
   output$MARSATAC_plot <- renderPlotly({
     
@@ -216,8 +200,9 @@ server <- function(input, output, session) {
       geom_rect(data = peaks_data() ,
         aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=max(UMI_data()$avg_log2_UMI), fill=peaks_data()$time),
           color = "grey",
-        alpha = 0.8) +
-      xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
+        alpha = 0.5) +
+      # xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
+      xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq peak time :")+
       # labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq time points", color = "MARS-seq time points")+
       geom_point(data = UMI_data(),
@@ -229,7 +214,8 @@ server <- function(input, output, session) {
     
     ggplotly(plot, tooltip = "text") %>%
      config(displaylogo = FALSE) %>%
-      layout(yaxis=list(fixedrange=TRUE)) %>%
+      layout(legend = list(orientation = "h", x = 0.5, y = -0.3),
+        yaxis=list(fixedrange=TRUE)) %>%
       config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
     
