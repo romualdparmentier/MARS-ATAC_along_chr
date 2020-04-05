@@ -133,6 +133,12 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
+  chr_value <- eventReactive(input$update_button,{input$chr})
+  
+  donor_value <- eventReactive(input$update_button,{input$donor})
+  
+  peaks_type <- eventReactive(input$update_button,{input$peaks_type})
+  
   UMI_data <- eventReactive(input$update_button,{UMI_mean_filtred_data %>%
       filter(donor == input$donor) %>%
       filter(chr == input$chr) %>%
@@ -158,7 +164,7 @@ server <- function(input, output, session) {
                  shape = 1, size = 2) +
       xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points")+
-      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor)) +
+      ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value())) +
       theme(plot.title = element_text(size = 15, face = "bold"))
     
     ggplotly(plot, tooltip = "text") %>%
@@ -178,7 +184,7 @@ server <- function(input, output, session) {
         alpha = 0.5) +
       xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq peak time :") +
-      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
+      ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value(), "| type of peak =", peaks_type())) +
       theme(legend.position = "bottom",
             plot.title = element_text(size = 15, face = "bold"))
     
@@ -209,7 +215,7 @@ server <- function(input, output, session) {
         aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI,
             color = UMI_data()$condition, text = hover_text), 
         shape = 1, size = 2) +  
-      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
+      ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value(), "| type of peak =", peaks_type())) +
       theme(plot.title = element_text(size = 15, face = "bold"))
     
     ggplotly(plot, tooltip = "text") %>%
