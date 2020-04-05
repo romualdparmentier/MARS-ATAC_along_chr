@@ -44,7 +44,7 @@ ui <- fluidPage(
   
   wellPanel(
     p("This is my firt ever made shiny.app.
-           Please feel free to use it and report any bugs at romualdparmentier@orange.fr",
+       Please feel free to use it and report any bugs at romualdparmentier@orange.fr",
       style = 'font-size:18px')
   ),
   
@@ -53,8 +53,11 @@ ui <- fluidPage(
   wellPanel(
     p("- First select your chromosome of choice, your time points and your donor and then click on the update button",
       style = 'font-size:18px'),
-    p("- You can actively choose you window of interest once your input parameters have been set",
+    p("- You can actively choose you window of interest once your input parameters have been set 
+         by double clicking on the plot and span arround you region of interest",
       style = 'font-size:18px'),
+    p("NOTE : you have a tool bar in the upper right corner of each plot (reset axis, zoom in/out, download as png",
+      style = 'font-size:18px')
   ),
   
   h3("Input parameters"),
@@ -165,11 +168,12 @@ server <- function(input, output, session) {
       xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points")+
       ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value())) +
-      theme(plot.title = element_text(size = 15, face = "bold"))
+      theme(plot.title = element_text(size = 13, face = "bold"))
     
     ggplotly(plot, tooltip = "text") %>%
       config(displaylogo = FALSE) %>%
-      layout(legend = list(orientation = "h", x = 0.8, y = -0.3),
+      layout(legend = list(orientation = "h", x = 0, y = -0.3,
+        font = list(size = 20)),
         yaxis=list(fixedrange=TRUE)) %>%
       config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
@@ -187,11 +191,12 @@ server <- function(input, output, session) {
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells") +
       ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value(), "| type of peak =", peaks_type())) +
       theme(legend.position = "bottom",
-            plot.title = element_text(size = 15, face = "bold"))
+            plot.title = element_text(size = 13, face = "bold"))
     
     ggplotly(plot) %>% 
       config(displaylogo = FALSE) %>%
-      layout(legend = list(orientation = "h", x = 0.8, y = -0.3),
+      layout(legend = list(orientation = "h", x = 0, y = -0.3,
+        font = list(size = 20)),
         yaxis=list(fixedrange=TRUE)) %>%
       config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
@@ -216,11 +221,12 @@ server <- function(input, output, session) {
             color = UMI_data()$condition, text = hover_text), 
         shape = 1, size = 2) +  
       ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value(), "| type of peak =", peaks_type())) +
-      theme(plot.title = element_text(size = 15, face = "bold"))
+      theme(plot.title = element_text(size = 13, face = "bold"))
     
     ggplotly(plot, tooltip = "text") %>%
      config(displaylogo = FALSE) %>%
-      layout(legend = list(orientation = "h", x = 0.8, y = -0.3),
+      layout(legend = list(orientation = "h", x = 0, y = -0.3,
+        font = list(size = 20)),
         yaxis=list(fixedrange=TRUE)) %>%
       config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
