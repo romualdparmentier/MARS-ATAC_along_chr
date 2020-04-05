@@ -136,13 +136,13 @@ ui <- fluidPage(
     )
   ),
   
-  mainPanel(
+  mainPanel(width = 12,
     h3("MARS-seq plot :"),
     plotlyOutput(outputId = "MARS_plot"),
     h3("ATAC-seq plot :"),
-    plotOutput(outputId = "ATAC_plot"),
+    plotlyOutput(outputId = "ATAC_plot"),
     h3("MARSATAC plot :"),
-    plotOutput(outputId = "MARSATAC_plot")
+    plotlyOutput(outputId = "MARSATAC_plot")
   )
 )
 
@@ -179,38 +179,59 @@ server <- function(input, output, session) {
       ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor)) +
       theme(plot.title = element_text(size = 15, face = "bold"))
     
-    ggplotly(plot, tooltip = "text")
+    ggplotly(plot, tooltip = "text") %>%
+      config(displaylogo = FALSE) %>%
+      layout(yaxis=list(fixedrange=TRUE)) %>%
+      config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
+
 
   })
   
-  output$ATAC_plot <- renderPlot({
+  output$ATAC_plot <- renderPlotly({
     
-    ggplot() +
+    plot <- ggplot() +
       geom_rect(data = peaks_data() ,
         aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=max(UMI_data()$avg_log2_UMI), fill=peaks_data()$time),
-        color = "transparent",
+        color = "grey",
         alpha = 0.8) +
       xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq peak time :") +
       ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
       theme(plot.title = element_text(size = 15, face = "bold"))
+    
+    ggplotly(plot) %>% 
+      config(displaylogo = FALSE) %>%
+      layout(yaxis=list(fixedrange=TRUE)) %>%
+      config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
   })
   
-  output$MARSATAC_plot <- renderPlot({
+  output$MARSATAC_plot <- renderPlotly({
     
-    ggplot() +
+   hover_text = paste0("Gene : ", UMI_data()$transcript_name_chr,
+                        "\nNb cell : ", UMI_data()$sum_cell,
+                        "\nVariance : ", round(UMI_data()$variance,1))
+    
+    plot <- ggplot() +
       geom_rect(data = peaks_data() ,
         aes(xmin = peaks_data()$start, xmax=peaks_data()$end, ymin=1.5, ymax=max(UMI_data()$avg_log2_UMI), fill=peaks_data()$time),
-        color = "transparent",
+          color = "grey",
         alpha = 0.8) +
       xlim(input$position[1]*1e+06 , input$position[2]*1e+06) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq peak time :")+
       # labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", fill = "ATAC-seq time points", color = "MARS-seq time points")+
       geom_point(data = UMI_data(),
-        aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI,color = UMI_data()$condition), shape = 1, size = 2) +  
+        aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI,
+            color = UMI_data()$condition, text = hover_text), 
+        shape = 1, size = 2) +  
       ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
       theme(plot.title = element_text(size = 15, face = "bold"))
+    
+    ggplotly(plot, tooltip = "text") %>%
+     config(displaylogo = FALSE) %>%
+      layout(yaxis=list(fixedrange=TRUE)) %>%
+      config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
+
     
   })
   
