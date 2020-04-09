@@ -122,21 +122,30 @@ ui <- fluidPage(
     )
   ),
   
-  mainPanel(
+  mainPanel(width = 12,
     fluidRow(
-      column(10,
+      column(9,
         h3("MARS-seq plot :"),
           plotlyOutput(outputId = "MARS_plot")
       ),
-      column(2,
-          plotlyOutput("gene_name")
+      column(3,
+          plotlyOutput("singlecell_info")
         )
     ),
-      
+    
+    fluidRow(
+      column(9,
     h3("ATAC-seq plot :"),
-    plotlyOutput(outputId = "ATAC_plot"),
+    plotlyOutput(outputId = "ATAC_plot")
+      )
+    ),
+    
+    fluidRow(
+      column(9,
     h3("MARSATAC plot :"),
     plotlyOutput(outputId = "MARSATAC_plot")
+      )
+    )
   )
 )
 
@@ -188,7 +197,7 @@ server <- function(input, output, session) {
 
   })
   
-  output$gene_name <- renderPlotly({
+  output$singlecell_info <- renderPlotly({
     req(input$update_button)
     gene = event_data(event = "plotly_click", source = "gene_id")
     if (is.null(gene)) "Click events appear here (double-click to clear)" 
@@ -197,13 +206,18 @@ server <- function(input, output, session) {
       filter(condition == input$MARS_time) %>%
       select(UMI_data()$transcript_name_chr[gene$pointNumber+1]) 
       colnames(gene_to_plot)[ncol(gene_to_plot)] <- "UMI_sum"
-      }
+    }
     
+    hover_text = paste0("Cell_Id : ", gene_to_plot$cell,
+                        "\nsum(UMI) : ", gene_to_plot$UMI_sum)
     plot <- ggplot()+
-      geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum ))
+      geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum, text = hover_text ))+
+      labs(x = "Cells", y = "UMI_sum", title = UMI_data()$transcript_name_chr[gene$pointNumber+1])+
+      theme(axis.text.x = element_blank())
    
-     ggplotly(plot)
-    
+     ggplotly(plot, tooltip = "text") %>%
+       config(displaylogo = FALSE) %>%
+       config(modeBarButtons = list(list("toImage")))
   })
     
       output$ATAC_plot <- renderPlotly({
