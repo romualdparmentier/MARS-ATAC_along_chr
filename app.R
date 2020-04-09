@@ -174,10 +174,13 @@ server <- function(input, output, session) {
   )
   
   output$MARS_plot <- renderPlotly({
+    
     req(input$update_button)
+    
     hover_text = paste0("Gene : ", UMI_data()$transcript_name_chr,
                         "\nNb cell : ", UMI_data()$sum_cell,
-                        "\nVariance : ", round(UMI_data()$variance,1))
+                        "\nVariance : ", round(UMI_data()$variance,1),
+                        "\n<b>Click to see single cell information</b>")
     
     plot <- ggplot() +
       geom_point(aes(x = UMI_data()$start_position, y = UMI_data()$avg_log2_UMI, 
@@ -198,7 +201,11 @@ server <- function(input, output, session) {
   })
   
   output$singlecell_info <- renderPlotly({
+    
     req(input$update_button)
+    gene_to_plot = data_frame("cell"="",
+                              "UMI_sum"="")
+    
     gene = event_data(event = "plotly_click", source = "gene_id")
     if (is.null(gene)) "Click events appear here (double-click to clear)" 
     else {gene_to_plot = UMI_cell_data %>% 
@@ -212,7 +219,7 @@ server <- function(input, output, session) {
                         "\nsum(UMI) : ", gene_to_plot$UMI_sum)
     plot <- ggplot()+
       geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum, text = hover_text ))+
-      labs(x = "Cells", y = "UMI_sum", title = UMI_data()$transcript_name_chr[gene$pointNumber+1])+
+      labs(x = "Cells", y = "UMI_sum", title = paste0("Single-cell info | Gene : ",UMI_data()$transcript_name_chr[gene$pointNumber+1]))+
       theme(axis.text.x = element_blank())
    
      ggplotly(plot, tooltip = "text") %>%
@@ -220,7 +227,7 @@ server <- function(input, output, session) {
        config(modeBarButtons = list(list("toImage")))
   })
     
-      output$ATAC_plot <- renderPlotly({
+  output$ATAC_plot <- renderPlotly({
     
     plot <- ggplot() +
       geom_rect(data = peaks_data() ,
