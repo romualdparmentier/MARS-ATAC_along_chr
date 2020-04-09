@@ -121,9 +121,17 @@ ui <- fluidPage(
     )
   ),
   
-  mainPanel(width = 10,
-    h3("MARS-seq plot :"),
-    plotlyOutput(outputId = "MARS_plot"),
+  mainPanel(
+    fluidRow(
+      column(8,
+        h3("MARS-seq plot :"),
+          plotlyOutput(outputId = "MARS_plot")
+      ),
+      column(4,
+          textOutput("gene_name")
+        )
+    ),
+      
     h3("ATAC-seq plot :"),
     plotlyOutput(outputId = "ATAC_plot"),
     h3("MARSATAC plot :"),
@@ -156,7 +164,7 @@ server <- function(input, output, session) {
   )
   
   output$MARS_plot <- renderPlotly({
-    
+    req(input$update_button)
     hover_text = paste0("Gene : ", UMI_data()$transcript_name_chr,
                         "\nNb cell : ", UMI_data()$sum_cell,
                         "\nVariance : ", round(UMI_data()$variance,1))
@@ -170,15 +178,28 @@ server <- function(input, output, session) {
       ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value())) +
       theme(plot.title = element_text(size = 13, face = "bold"))
     
-    ggplotly(plot, tooltip = "text") %>%
+    ggplotly(plot, source = "gene_id", key =  ,tooltip = "text") %>%
       config(displaylogo = FALSE) %>%
       layout(legend = list(orientation = "h", x = 0, y = -0.3,
         font = list(size = 20)),
         yaxis=list(fixedrange=TRUE)) %>%
       config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
-
   })
+  
+  output$gene_name <- renderPrint({
+    req(input$update_button)
+    gene = event_data(event = "plotly_click", source = "gene_id")
+    if (is.null(gene)) "Click events appear here (double-click to clear)" 
+    else UMI_data()$transcript_name_chr[gene$pointNumber+1]
+    
+  })
+    
+  #   renderPlot(
+  #   
+  #    plot <- ggplot() +
+  #      geom_point()
+  # )
   
   output$ATAC_plot <- renderPlotly({
     
@@ -194,7 +215,7 @@ server <- function(input, output, session) {
             plot.title = element_text(size = 13, face = "bold"))
     
     ggplotly(plot) %>% 
-      config(displaylogo = FALSE) %>%
+        config(displaylogo = FALSE) %>%
       layout(legend = list(orientation = "h", x = 0, y = -0.3,
         font = list(size = 20)),
         yaxis=list(fixedrange=TRUE)) %>%
