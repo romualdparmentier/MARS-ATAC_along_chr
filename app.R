@@ -32,6 +32,7 @@ loadRData <- function(fileName){
 
 accessibility_peaks_data <- loadRData("data/accessibility_peaks_data.rda")
 UMI_mean_filtred_data <- loadRData("data/UMI_mean_filtred_data.rda")
+UMI_cell_data <- loadRData("data/Spread_MARSseq_data_all_filters_20200405.rda")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -123,12 +124,12 @@ ui <- fluidPage(
   
   mainPanel(
     fluidRow(
-      column(8,
+      column(10,
         h3("MARS-seq plot :"),
           plotlyOutput(outputId = "MARS_plot")
       ),
-      column(4,
-          textOutput("gene_name")
+      column(2,
+          plotlyOutput("gene_name")
         )
     ),
       
@@ -178,7 +179,7 @@ server <- function(input, output, session) {
       ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value())) +
       theme(plot.title = element_text(size = 13, face = "bold"))
     
-    ggplotly(plot, source = "gene_id", key =  ,tooltip = "text") %>%
+    ggplotly(plot, source = "gene_id", tooltip = "text") %>%
       config(displaylogo = FALSE) %>%
       layout(legend = list(orientation = "h", x = 0, y = -0.3,
         font = list(size = 20)),
@@ -187,21 +188,25 @@ server <- function(input, output, session) {
 
   })
   
-  output$gene_name <- renderPrint({
+  output$gene_name <- renderPlotly({
     req(input$update_button)
     gene = event_data(event = "plotly_click", source = "gene_id")
     if (is.null(gene)) "Click events appear here (double-click to clear)" 
-    else UMI_data()$transcript_name_chr[gene$pointNumber+1]
+    else {gene_to_plot = UMI_cell_data %>% 
+      filter(donor == input$donor) %>%
+      filter(condition == input$MARS_time) %>%
+      select(UMI_data()$transcript_name_chr[gene$pointNumber+1]) 
+      colnames(gene_to_plot)[ncol(gene_to_plot)] <- "UMI_sum"
+      }
+    
+    plot <- ggplot()+
+      geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum ))
+   
+     ggplotly(plot)
     
   })
     
-  #   renderPlot(
-  #   
-  #    plot <- ggplot() +
-  #      geom_point()
-  # )
-  
-  output$ATAC_plot <- renderPlotly({
+      output$ATAC_plot <- renderPlotly({
     
     plot <- ggplot() +
       geom_rect(data = peaks_data() ,
