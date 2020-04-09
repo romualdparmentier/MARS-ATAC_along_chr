@@ -161,13 +161,13 @@ server <- function(input, output, session) {
   
   peaks_type <- eventReactive(input$update_button,{input$peaks_type})
   
-  UMI_data <- eventReactive(input$update_button,{UMI_mean_filtred_data %>%
+  UMI_data <- reactive({UMI_mean_filtred_data %>%
       filter(donor == input$donor) %>%
       filter(chr == input$chr) %>%
       filter(condition %in% input$MARS_time)}
   )
   
-  peaks_data <- eventReactive(input$update_button,{accessibility_peaks_data %>%
+  peaks_data <- reactive({accessibility_peaks_data %>%
       filter(time %in% input$ATAC_time) %>%
       filter(chr == input$chr)%>%
       filter(type %in% input$peaks_type) %>%
@@ -180,7 +180,7 @@ server <- function(input, output, session) {
     "72Hrs" = "#984EA3",
     "96Hrs" = "#FF7F00" )
   
-  MARS_time_colscale = scale_color_manual(values = colors_MARS_seq)
+  MARS_time_colscale = scale_color_manual(values = colors_MARS_time)
   
   colors_ATAC_time = c("00h" = "#E41A1C",
     "24h" = "#377EB8",
@@ -204,7 +204,7 @@ server <- function(input, output, session) {
                  shape = 1, size = 2) +
       xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points")+
-      ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value())) +
+      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor)) +
       theme(plot.title = element_text(size = 13, face = "bold")) +
       MARS_time_colscale
     
@@ -257,7 +257,7 @@ server <- function(input, output, session) {
         alpha = 0.5) +
       xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells") +
-      ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value(), "| type of peak =", peaks_type())) +
+      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
       theme(legend.position = "bottom",
             plot.title = element_text(size = 13, face = "bold"))+
       ATAC_time_colscale
@@ -289,7 +289,7 @@ server <- function(input, output, session) {
         aes(x=UMI_data()$start_position, y=UMI_data()$avg_log2_UMI,
             color = UMI_data()$condition, text = hover_text), 
         shape = 1, size = 2) +  
-      ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value(), "| type of peak =", peaks_type())) +
+      ggtitle(paste("Chromosome =", input$chr, "| donor =", input$donor, "| type of peak =", input$peaks_type)) +
       theme(plot.title = element_text(size = 13, face = "bold"))
     
     ggplotly(plot, tooltip = "text") %>%
