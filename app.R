@@ -15,6 +15,7 @@ library(shiny)
 library(ggplot2)
 library(plotly)
 library(dplyr)
+library(RColorBrewer)
 
 ##########################
 ######## Functions #######
@@ -173,9 +174,24 @@ server <- function(input, output, session) {
       filter(yes_no == TRUE)}
   )
   
+  colors_MARS_time = c("00Hrs" = "#E41A1C",
+    "24Hrs" = "#377EB8",
+    "48Hrs" = "#4DAF4A",
+    "72Hrs" = "#984EA3",
+    "96Hrs" = "#FF7F00" )
+  
+  MARS_time_colscale = scale_color_manual(values = colors_MARS_seq)
+  
+  colors_ATAC_time = c("00h" = "#E41A1C",
+    "24h" = "#377EB8",
+    "48h" = "#4DAF4A")
+  
+  ATAC_time_colscale = scale_fill_manual(values = colors_ATAC_time)
+
+  
   output$MARS_plot <- renderPlotly({
     
-    req(input$update_button)
+  req(input$update_button)
     
     hover_text = paste0("Gene : ", UMI_data()$transcript_name_chr,
                         "\nNb cell : ", UMI_data()$sum_cell,
@@ -189,7 +205,8 @@ server <- function(input, output, session) {
       xlim(0, max(peaks_data()$end)) +
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells", color = "MARS-seq time points")+
       ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value())) +
-      theme(plot.title = element_text(size = 13, face = "bold"))
+      theme(plot.title = element_text(size = 13, face = "bold")) +
+      MARS_time_colscale
     
     ggplotly(plot, source = "gene_id", tooltip = "text") %>%
       config(displaylogo = FALSE) %>%
@@ -210,18 +227,22 @@ server <- function(input, output, session) {
     if (is.null(gene)) "Click events appear here (double-click to clear)" 
     else {gene_to_plot = UMI_cell_data %>% 
       filter(donor == input$donor) %>%
-      filter(condition == input$MARS_time) %>%
+      filter(condition %in% input$MARS_time) %>%
       select(UMI_data()$transcript_name_chr[gene$pointNumber+1]) 
       colnames(gene_to_plot)[ncol(gene_to_plot)] <- "UMI_sum"
+      gene_to_plot$condition = factor(gene_to_plot$condition)
     }
     
     hover_text = paste0("Cell_Id : ", gene_to_plot$cell,
                         "\nsum(UMI) : ", gene_to_plot$UMI_sum)
     plot <- ggplot()+
-      geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum, text = hover_text ))+
+      geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum, 
+        text = hover_text, color = gene_to_plot$condition),
+        shape =1, size = 2)+
       labs(x = "Cells", y = "UMI_sum", title = paste0("Single-cell info | Gene : ",UMI_data()$transcript_name_chr[gene$pointNumber+1]))+
-      theme(axis.text.x = element_blank())
-   
+      theme(legend.position = "none", axis.text.x = element_blank()) +
+      MARS_time_colscale
+    
      ggplotly(plot, tooltip = "text") %>%
        config(displaylogo = FALSE) %>%
        config(modeBarButtons = list(list("toImage")))
@@ -238,7 +259,8 @@ server <- function(input, output, session) {
       labs(x = "chr position (bp)", y = "means(log2_UMI_sum) among cells") +
       ggtitle(paste("Chromosome =", chr_value(), "| donor =", donor_value(), "| type of peak =", peaks_type())) +
       theme(legend.position = "bottom",
-            plot.title = element_text(size = 13, face = "bold"))
+            plot.title = element_text(size = 13, face = "bold"))+
+      ATAC_time_colscale
     
     ggplotly(plot) %>% 
         config(displaylogo = FALSE) %>%
