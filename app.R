@@ -12,12 +12,14 @@
 ##########################
 
 library(shiny)
+library(Gviz)
+library(dqshiny)
 library(ggplot2)
 library(plotly)
 library(dplyr)
 library(RColorBrewer)
 
-##########################
+##########################  
 ######## Functions #######
 ##########################
 
@@ -26,7 +28,7 @@ loadRData <- function(fileName){
   get(ls()[ls() != "fileName"])
 }
 
-
+    
 ##########################
 ######## Files ########
 ##########################
@@ -112,7 +114,6 @@ ui <- fluidPage(
                       CTCF = "CTCF",
                       Intergenic_CTCF = "CTCF_intergenic"),
         selected = "TSS_1kb" )
-        
         ),
       
       column(2,
@@ -136,9 +137,12 @@ ui <- fluidPage(
     
     fluidRow(
       column(9,
-    h3("ATAC-seq plot :"),
-    plotlyOutput(outputId = "ATAC_plot")
-      )
+        h3("ATAC-seq plot :"),
+        plotlyOutput(outputId = "ATAC_plot")
+      ),
+      column(3,
+        plotOutput(outputId = "chr_plot")
+        )
     ),
     
     fluidRow(
@@ -147,8 +151,39 @@ ui <- fluidPage(
     plotlyOutput(outputId = "MARSATAC_plot")
       )
     )
+  ),
+   
+  sidebarLayout(
+    
+    sidebarPanel(h3("Choose your gene"),
+          autocomplete_input(id = "select2Input1",
+          label = "Gene name",
+          options = UMI_mean_filtred_data$transcript_name_chr,
+          max_options = 100),
+      
+        selectInput(
+          inputId = "MARS_time_2",
+          label = "MARS Days",
+          choices = list("00Hrs" = "00Hrs",
+            "24Hrs" = "24Hrs",
+            "48Hrs" = "48Hrs",
+            "72Hrs" = "72Hrs",
+            "96Hrs" = "96Hrs"),
+          selected = "00Hrs"),
+    ),
+    
+    mainPanel(
+      fluidRow(
+        column(6,plotlyOutput(outputId = "MARS_choose_geneplot_d1")
+        ),
+        
+        column(6,plotlyOutput(outputId = "MARS_choose_geneplot_d2")
+        )
+      )
+    )
   )
-)
+)  
+
 
 
 
@@ -173,14 +208,15 @@ server <- function(input, output, session) {
       filter(type %in% input$peaks_type) %>%
       filter(yes_no == TRUE)}
   )
-  
+ 
+   
   colors_MARS_time = c("00Hrs" = "#E41A1C",
     "24Hrs" = "#377EB8",
     "48Hrs" = "#4DAF4A",
     "72Hrs" = "#984EA3",
     "96Hrs" = "#FF7F00" )
   
-  MARS_time_colscale = scale_color_manual(values = colors_MARS_seq)
+  MARS_time_colscale = scale_color_manual(values = colors_MARS_time)
   
   colors_ATAC_time = c("00h" = "#E41A1C",
     "24h" = "#377EB8",
@@ -191,7 +227,7 @@ server <- function(input, output, session) {
   
   output$MARS_plot <- renderPlotly({
     
-  req(input$update_button)
+    req(input$update_button)
     
     hover_text = paste0("Gene : ", UMI_data()$transcript_name_chr,
                         "\nNb cell : ", UMI_data()$sum_cell,
@@ -220,7 +256,8 @@ server <- function(input, output, session) {
   output$singlecell_info <- renderPlotly({
     
     req(input$update_button)
-    gene_to_plot = data_frame("cell"="",
+    
+    gene_to_plot = tibble("cell"="",
                               "UMI_sum"="")
     
     gene = event_data(event = "plotly_click", source = "gene_id")
@@ -229,6 +266,7 @@ server <- function(input, output, session) {
       filter(donor == input$donor) %>%
       filter(condition %in% input$MARS_time) %>%
       select(UMI_data()$transcript_name_chr[gene$pointNumber+1]) 
+      
       colnames(gene_to_plot)[ncol(gene_to_plot)] <- "UMI_sum"
       gene_to_plot$condition = factor(gene_to_plot$condition)
     }
@@ -271,6 +309,13 @@ server <- function(input, output, session) {
 
   }) 
   
+  output$chr_plot <- renderPlot({
+    
+   chr_track = IdeogramTrack(genome="hg19", chromosome = chr_value())
+   plotTracks(trackList = chr_track, from = 0, to = 250000000, showTitle = TRUE)
+
+  })
+  
   output$MARSATAC_plot <- renderPlotly({
     
    hover_text = paste0("Gene : ", UMI_data()$transcript_name_chr,
@@ -300,6 +345,87 @@ server <- function(input, output, session) {
       config(modeBarButtons = list(list("resetScale2d"), list("zoomOut2d"),list("zoomIn2d"), list("toImage")))
 
     
+  })
+  
+  
+  output$MARS_choose_geneplot_d1 <- renderPlotly({
+    
+    gene_to_plot = tibble("cell"="",
+                          "UMI_sum"="")
+    
+    gene = input$"select2Input1"
+    
+    Max_y = UMI_cell_data %>% 
+      filter(condition %in% input$MARS_time_2) %>%
+      select(condition, cell, donor, gene) 
+    
+    Max_y = max(Max_y[4])
+    
+    gene_to_plot = UMI_cell_data %>% 
+      filter(donor == 1) %>%
+      filter(condition %in% input$MARS_time_2) %>%
+      select(condition, cell, donor, gene) 
+      
+      colnames(gene_to_plot)[ncol(gene_to_plot)] <- "UMI_sum"
+      gene_to_plot$condition = factor(gene_to_plot$condition)
+    
+    
+    hover_text = paste0("Cell_Id : ", gene_to_plot$cell,
+                        "\nsum(UMI) : ", gene_to_plot$UMI_sum)
+    
+    plot <- ggplot()+
+      geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum, 
+        text = hover_text, color = gene_to_plot$condition),
+        shape =1, size = 2)+
+      ylim(0,Max_y) +
+      geom_hline(yintercept = mean(gene_to_plot$UMI_sum), col = "red", linetype = "dashed") +
+      labs(x = "Cells", y = "UMI_sum",title = paste0("Gene : ", gene, " | Donor 1 | Time : ", input$MARS_time_2))+
+      theme(legend.position = "none", axis.text.x = element_blank()) +
+      MARS_time_colscale
+    
+     ggplotly(plot, tooltip = "text") %>%
+       config(displaylogo = FALSE) %>%
+       config(modeBarButtons = list(list("toImage")))
+  })
+  
+  output$MARS_choose_geneplot_d2 <- renderPlotly({
+    
+    gene_to_plot = tibble("cell"="",
+                          "UMI_sum"="")
+    
+    gene = input$"select2Input1"
+    
+    Max_y = UMI_cell_data %>% 
+      filter(condition %in% input$MARS_time_2) %>%
+      select(condition, cell, donor, gene) 
+    
+    Max_y = max(Max_y[4])
+    
+    gene_to_plot = UMI_cell_data %>% 
+      filter(donor == 2) %>%
+      filter(condition %in% input$MARS_time_2) %>%
+      select(condition, cell, donor, gene) 
+      
+      colnames(gene_to_plot)[ncol(gene_to_plot)] <- "UMI_sum"
+      gene_to_plot$condition = factor(gene_to_plot$condition)
+    
+    
+    hover_text = paste0("Cell_Id : ", gene_to_plot$cell,
+                        "\nsum(UMI) : ", gene_to_plot$UMI_sum)
+    
+    plot <- ggplot()+
+      geom_point(aes(x = gene_to_plot$cell, y = gene_to_plot$UMI_sum, 
+        text = hover_text, color = gene_to_plot$condition),
+        shape = 1, size = 2)+
+      ylim(0,Max_y)+
+      geom_hline(yintercept = mean(gene_to_plot$UMI_sum), col = "red", linetype = "dashed") +
+      labs(x = "Cells", y = "UMI_sum", title = paste0("Gene : ", gene, " | Donor 2 | Time : ", input$MARS_time_2))+
+      theme(legend.position = "none", axis.text.x = element_blank()) +
+      MARS_time_colscale
+    
+     ggplotly(plot, tooltip = "text") %>%
+       config(displaylogo = FALSE) %>%
+       config(modeBarButtons = list(list("toImage")))
   })
   
 }
