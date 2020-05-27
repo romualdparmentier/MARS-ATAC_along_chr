@@ -19,7 +19,7 @@ library(plotly)
 library(dplyr)
 library(RColorBrewer)
 
-##########################  
+##########################    
 ######## Functions #######
 ##########################
 
@@ -58,9 +58,9 @@ ui <- fluidPage(
     p("- First select your chromosome of choice, your time points and your donor and then click on the update button",
       style = 'font-size:18px'),
     p("- You can actively choose you window of interest once your input parameters have been set 
-         by double clicking on the plot and span arround you region of interest",
+         by double clicking on the plot and span arround your region of interest",
       style = 'font-size:18px'),
-    p("NOTE : you have a tool bar in the upper right corner of each plot (reset axis, zoom in/out, download as png",
+    p("NOTE : you have a tool bar in the upper right corner of each plot (reset axis, zoom in/out, download as png)",
       style = 'font-size:18px')
   ),
   
@@ -119,7 +119,7 @@ ui <- fluidPage(
       column(2,
         actionButton(inputId = "update_button",
           label = "Click to update the plot",
-          style='padding:50px 100px; font-size:200%')
+          style = 'padding:50px 100px; font-size:200%')
       )
     )
   ),
@@ -159,7 +159,8 @@ ui <- fluidPage(
           autocomplete_input(id = "select2Input1",
           label = "Gene name",
           options = UMI_mean_filtred_data$transcript_name_chr,
-          max_options = 100),
+          max_options = 100,
+          value = "RUNX1; chr21"),
       
         selectInput(
           inputId = "MARS_time_2",
@@ -188,7 +189,7 @@ ui <- fluidPage(
 
 
 # Define server logic required to draw a histogram
-server <- function(input, output, session) {
+server <- function(input, output, session) { 
   
   chr_value <- eventReactive(input$update_button,{input$chr})
   
@@ -258,7 +259,7 @@ server <- function(input, output, session) {
     req(input$update_button)
     
     gene_to_plot = tibble("cell"="",
-                              "UMI_sum"="")
+                          "UMI_sum"="")
     
     gene = event_data(event = "plotly_click", source = "gene_id")
     if (is.null(gene)) "Click events appear here (double-click to clear)" 
